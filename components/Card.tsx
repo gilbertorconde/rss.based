@@ -1,42 +1,78 @@
 
 
-import { useTheme } from '@react-navigation/native';
-import React from 'react';
-import { GestureResponderEvent, Image, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useNavigation, useTheme } from '@react-navigation/native';
+import React, { FC } from 'react';
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions } from 'react-native';
 import RenderHtml from 'react-native-render-html';
 import * as rssParser from 'react-native-rss-parser';
+import { DetailsProps } from '../App';
+import Store from '../store';
 
 interface Props {
-  item: rssParser.Item
+  item?: rssParser.Item
+  itemId?: string
 }
 
-export default ({ item }: Props) => {
-  const handleOnCardClick = (_e: GestureResponderEvent) => {
-    console.log()
+const Card: FC<Props> = ({ item: it, itemId }) => {
+
+  const item = it ? it : Store.useState(({ feed }) => feed?.items.find(it => it.id === itemId));
+
+  const navigation = useNavigation<DetailsProps['navigation']>()
+  const handleOnCardClick = (itemId: string) => {
+    navigation.navigate('Details', {
+      itemId,
+    });
   }
-  const { colors, dark } = useTheme();
+  const { colors } = useTheme();
   const { width } = useWindowDimensions();
-  const image = item.imageUrl || item.itunes.image;
-  return (
-    <View style={{...styles.card, backgroundColor: colors.card }} accessible accessibilityRole="link" onTouchEnd={handleOnCardClick} >
+  const image = item?.imageUrl || item?.itunes.image;
+
+  const renderCardContent = () => (
+    <>
       {image &&
         <Image
           style={styles.cardImage}
           source={{ uri: image }}
         />
       }
-      <Text style={{...styles.header2Title, color: colors.text }}>{item.title}</Text>
+      <Text style={{...styles.header2Title, color: colors.text }}>{item?.title}</Text>
       <RenderHtml
         contentWidth={width}
-        source={{html: item.description}}
+        source={{
+          html: (
+            !!itemId ?
+              (item?.content ? item.content : item?.description ) :
+              (item?.description ? item.description : item?.content)
+          ) || ''
+        }}
         baseStyle={{ color: colors.text, backgroundColor: 'transparent' }}
         enableCSSInlineProcessing={false}
       />
-    </View>
+    </>
+  );
+
+  if (itemId) {
+    return (
+      <ScrollView
+        style={{...styles.card, backgroundColor: colors.card }}
+      >
+        {renderCardContent()}
+      </ScrollView>
+    );
+  }
+
+  return (
+    <TouchableOpacity
+      style={{...styles.card, backgroundColor: colors.card }}
+      accessible
+      accessibilityRole="link"
+      onPress={() => item && handleOnCardClick(item.id)}
+    >
+      {renderCardContent()}
+    </TouchableOpacity>
   );
 
 }
-
 
 const styles = StyleSheet.create({
   header2Title: {
@@ -65,3 +101,5 @@ const styles = StyleSheet.create({
     height: 150,
   }
 });
+
+export default Card;

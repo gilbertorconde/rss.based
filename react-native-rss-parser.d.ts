@@ -1,28 +1,28 @@
 declare module 'react-native-rss-parser' {
-  interface Link {
+  declare interface Link {
     url: string,
     rel: string,
   }
 
-  interface Author {
+  declare interface Author {
     name: string,
   }
 
-  interface SubCategory {
+  declare interface SubCategory {
     name: string,
   }
 
-  interface Category {
+  declare interface Category {
     name: string,
     subCategories?: SubCategory[],
   }
 
-  interface Owner {
+  declare interface Owner {
     name: string,
     email: string,
   }
 
-  interface Image {
+  declare interface Image {
     url: string,
     title: string,
     description: string,
@@ -30,7 +30,7 @@ declare module 'react-native-rss-parser' {
     height: string,
   }
 
-  interface Itunes {
+  declare interface Itunes {
     author?: Author[],
     authors?: Author[],
     block: string,
@@ -47,13 +47,13 @@ declare module 'react-native-rss-parser' {
     summary: string,
   }
 
-  interface Enclosure {
+  declare interface Enclosure {
     url: string,
     length: string,
     mimeType: string,
   }
 
-  interface Item {
+  declare interface Item {
     id: string,
     title: string,
     imageUrl: string,
@@ -67,7 +67,7 @@ declare module 'react-native-rss-parser' {
     itunes: Itunes,
   }
 
-  interface Feed {
+  declare interface Feed {
     type: string,
     title: string,
     links: Link[],
