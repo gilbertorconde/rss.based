@@ -37,6 +37,7 @@ Take a look at this example made with Luke Smith RSS feed:
 }
 ```
 
-https://user-images.githubusercontent.com/1083603/135323320-e8d7ae90-4b23-44a5-bfcf-c54de06209b1.mp4
+https://user-images.githubusercontent.com/1083603/135324120-f4f050ee-9b74-405c-9d32-e119aafe7e44.mov
+
 
 Yeah, I now, the dogs are not part of the app.
