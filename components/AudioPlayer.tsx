@@ -1,5 +1,6 @@
 import { Audio } from 'expo-av';
 import { Sound } from 'expo-av/build/Audio';
+import { activateKeepAwake, deactivateKeepAwake } from 'expo-keep-awake';
 import useTheme from 'hooks/useTheme';
 import React, { FC, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -73,11 +74,13 @@ const AudioPlayer: FC<Props> = ({ uri }) => {
       setSound(s);
     }
     await aSound!.playAsync();
+    activateKeepAwake();
     setPlaying(true);
   }
 
   const pauseSound = async () => {
     await sound?.pauseAsync();
+    deactivateKeepAwake();
     setPlaying(false);
   }
 
@@ -85,6 +88,7 @@ const AudioPlayer: FC<Props> = ({ uri }) => {
     await sound?.stopAsync();
     setSound(undefined);
     setPlaying(false);
+    deactivateKeepAwake();
     setProgress(0);
   }
 
@@ -104,10 +108,12 @@ const AudioPlayer: FC<Props> = ({ uri }) => {
   }
 
   useEffect(() => {
-    return sound
-      ? () => {
-          sound.unloadAsync(); }
-      : undefined;
+    return () => {
+      if (sound) {
+        sound.unloadAsync();
+      }
+      deactivateKeepAwake();
+    }
   }, [sound]);
 
   const buttonStyle = {
