@@ -1,6 +1,6 @@
 ## Auto generator smartphone apps for RSS Feeds ##
 
-For now just clone the repo, change the `RSS_URL` variable on the `.env` file and build the project.
+For now just clone the repo, change the entries on the `settings/generator.json` file and build the project.
 
 Just run the `npm install` then `npm start` to start play around.
 

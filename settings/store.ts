@@ -1,5 +1,5 @@
 import { Store } from 'pullstate';
-import IStore from './entities/IStore';
+import IStore from '../entities/IStore';
 
 const UIStore = new Store<IStore>({
   isDarkMode: 'auto',

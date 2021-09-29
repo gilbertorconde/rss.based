@@ -16,10 +16,17 @@ export type DetailsProps = NativeStackScreenProps<RootStackParamList, 'Details'>
 const Stack = createNativeStackNavigator();
 
 export default () => {
+  const theme = useTheme();
   return (
-    <NavigationContainer theme={useTheme()}>
-      <Stack.Navigator initialRouteName="Feed">
-        <Stack.Screen name="Feed" component={Home} />
+    <NavigationContainer theme={theme}>
+      <Stack.Navigator
+        screenOptions={{
+          headerStyle: { backgroundColor: theme.colors.background },
+          headerTintColor: theme.colors.title
+        }}
+        initialRouteName="Feed"
+      >
+        <Stack.Screen options={{ headerShown: false }} name="Feed" component={Home} />
         <Stack.Screen name="Details" component={Details} />
       </Stack.Navigator>
     </NavigationContainer>

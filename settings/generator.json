@@ -1,0 +1,24 @@
+{
+  "rss_url": "https://notrelated.libsyn.com/rss",
+  "colors": {
+    "light": {
+      "primary": "#00b7ff",
+      "title": "#FFFFFF",
+      "background": "#00b7ff",
+      "card": "#FFFFFF",
+      "text": "rgb(28, 28, 30)",
+      "border": "rgb(255, 59, 48)",
+      "notification": "rgb(28, 28, 30)"
+    },
+    "dark": {},
+    "statusbar": {
+      "light": {
+        "background": "#00b7ff",
+        "style": "light"
+      },
+      "dark": {}
+    }
+  },
+  "header_size": 215,
+  "header_collapsed_size": 0
+}

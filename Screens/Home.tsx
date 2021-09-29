@@ -1,19 +1,30 @@
-import { RSS_URL } from '@env';
-import { useTheme } from '@react-navigation/native';
+import { FeedProps } from 'App';
+import Card from 'components/Card';
+import Constants from 'expo-constants';
 import { StatusBar } from 'expo-status-bar';
-import React, { FC, useEffect, useState } from 'react';
+import useTheme from 'hooks/useTheme';
+import React, { FC, useEffect, useRef, useState } from 'react';
 import {
-  Image, RefreshControl,
+  Animated,
+  Image, LayoutChangeEvent, RefreshControl,
   SafeAreaView,
-  ScrollView, StyleSheet, Text
+  ScrollView, StyleSheet, Text, View
 } from 'react-native';
 import * as rssParser from 'react-native-rss-parser';
-import { FeedProps } from '../App';
-import Card from '../components/Card';
-import Store from '../store';
+import * as settings from 'settings/generator.json';
+import Store from 'settings/store';
+
+const H_MAX_HEIGHT = settings.header_size;
+const H_MIN_HEIGHT = settings.header_collapsed_size;
+const H_SCROLL_DISTANCE = H_MAX_HEIGHT - H_MIN_HEIGHT;
 
 const Home: FC<FeedProps> = () => {
-  const { colors, dark } = useTheme();
+  const [containerWidth, setContainerWidth] = useState<number>(0);
+  const _onViewLayoutChange = (event: LayoutChangeEvent) => {
+    const { width } = event.nativeEvent.layout;
+    setContainerWidth(width - 32);
+  }
+  const { colors, statusbarColors } = useTheme();
   const [loading, setLoading] = useState<boolean>(false);
   const [update, setUpdate] = useState<number>(0);
   const rssContent = Store.useState(({ feed }) => feed)
@@ -22,7 +33,7 @@ const Home: FC<FeedProps> = () => {
     let cancel = false;
     const fetchRssContent = async () => {
       setLoading(true);
-      const rss = await rssParser.parse(await (await fetch(RSS_URL)).text())
+      const rss = await rssParser.parse(await (await fetch(settings.rss_url)).text())
       if (!cancel) {
         Store.update(s => { s.feed = rss; })
         setLoading(false);
@@ -37,31 +48,67 @@ const Home: FC<FeedProps> = () => {
     setUpdate(prev => prev + 1)
   }
 
+  const scrollOffsetY = useRef(new Animated.Value(0)).current;
+  const headerScrollHeight = scrollOffsetY.interpolate({
+    inputRange: [0, H_SCROLL_DISTANCE],
+    outputRange: [H_MAX_HEIGHT, H_MIN_HEIGHT],
+    extrapolate: "clamp"
+  });
+
   return (
-    <SafeAreaView style={{ ...styles.container, backgroundColor: colors.background }}>
+    <SafeAreaView
+      onLayout={_onViewLayoutChange}
+      style={{
+        ...styles.container,
+        backgroundColor: colors.background
+      }}
+    >
+      <StatusBar
+        style={statusbarColors.style}
+        backgroundColor={statusbarColors.background}
+      />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollViewContainer}
+        onScroll={Animated.event([
+          { nativeEvent: { contentOffset: { y: scrollOffsetY } } }
+        ], { useNativeDriver: false })}
+        scrollEventThrottle={16}
         refreshControl={
           <RefreshControl
+            progressViewOffset={ H_MAX_HEIGHT }
             refreshing={loading}
+            colors={[colors.title]}
+            progressBackgroundColor={colors.background}
             onRefresh={handleOnRefresh}
           />
         }
-      >
-        <StatusBar style={dark ? 'light' : 'dark'} />
+        >
+        <View style={{ paddingTop: H_MAX_HEIGHT }} />
+        {rssContent?.items.map(item => <Card width={containerWidth} key={item.id} item={item} />)}
+      </ScrollView>
+      <Animated.View
+        style={{
+          ...styles.animated,
+          height: headerScrollHeight,
+          backgroundColor: colors.background
+        }}
+        >
         {rssContent?.image.url &&
           <Image
+            source={{ uri: rssContent.image.url }}
             style={styles.image}
             accessibilityLabel={rssContent.image.title}
-            source={{ uri: rssContent.image.url }}
+            resizeMode={"contain"}
           />
         }
-        <Text style={{...styles.header1Title, color: colors.text}} >
+        <Text style={{...styles.header1Title, color: colors.title}} >
           {rssContent?.title}
         </Text>
-        {rssContent?.items.map((item) => <Card key={item.id} item={item} />)}
-      </ScrollView>
+        {!!rssContent?.copyright &&
+          <Text style={{ color: colors.title, textAlign: 'center' }}>{rssContent.copyright}</Text>
+        }
+      </Animated.View>
     </SafeAreaView>
   );
 }
@@ -69,6 +116,7 @@ const Home: FC<FeedProps> = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingTop: Constants.statusBarHeight,
   },
   scrollView: {
     marginHorizontal: 0,
@@ -77,14 +125,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header1Title: {
-    marginTop: 16,
-    marginBottom: 16,
+    marginTop: 8,
+    marginBottom: 8,
     fontSize: 24,
     textAlign: 'center',
   },
   image: {
     width: 150,
     height: 150,
+    flex: 1,
+  },
+  animated: {
+    position: "absolute",
+    alignItems: "center",
+    left: 0,
+    right: 0,
+    top: Constants.statusBarHeight,
+    width: "100%",
+    overflow: "hidden",
+    zIndex: 10,
+    padding: 10,
+    elevation: 2,
   }
 });
 
