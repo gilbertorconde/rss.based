@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 0,
   },
   scrollViewContainer: {
-    alignItems: 'center',
+    alignItems: 'stretch',
   },
   header1Title: {
     marginTop: 8,

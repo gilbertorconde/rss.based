@@ -1,25 +1,31 @@
 
 
+import IframeRenderer, { iframeModel } from '@native-html/iframe-plugin';
 import { useNavigation, useTheme } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import React, { FC } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import RenderHtml from 'react-native-render-html';
 import * as rssParser from 'react-native-rss-parser';
-import Store from 'settings/store';
+import WebView from 'react-native-webview';
 import AutoHeightImage from 'vendor/AutoHeightImage';
 import { DetailsProps } from '../App';
 import AudioPlayer from './AudioPlayer';
 
-interface Props {
-  item?: rssParser.Item
-  itemId?: string
-  width: number
+const renderers = {
+  iframe: IframeRenderer
+}
+const customHTMLElementModels = {
+  iframe: iframeModel
 }
 
-const Card: FC<Props> = ({ item: it, itemId, width }) => {
-  const item = it ? it : Store.useState(({ feed }) => feed?.items.find(it => it.id === itemId));
+interface Props {
+  item: rssParser.Item;
+  detailedView?: boolean;
+  width: number;
+}
 
+const Card: FC<Props> = ({ item, detailedView, width }) => {
   const navigation = useNavigation<DetailsProps['navigation']>()
   const handleOnCardClick = (itemId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -32,7 +38,7 @@ const Card: FC<Props> = ({ item: it, itemId, width }) => {
 
   const renderCardContent = () => (
     <>
-      {image &&
+      {!!image &&
         <AutoHeightImage
           width={width - 32 || 100}
           source={{ uri: image }}
@@ -40,25 +46,27 @@ const Card: FC<Props> = ({ item: it, itemId, width }) => {
         />
       }
       <Text style={{...styles.header2Title, color: colors.text }}>{item?.title}</Text>
-      {itemId &&
+      {!!detailedView &&
         <>
           <RenderHtml
             contentWidth={width}
+            renderers={renderers}
+            WebView={WebView}
+            customHTMLElementModels={customHTMLElementModels}
             source={{
               html: item?.content ? item.content : item?.description || ''
-
             }}
             baseStyle={{ color: colors.text, backgroundColor: 'transparent' }}
             enableCSSInlineProcessing={false}
           />
-          {(item?.enclosures && item.enclosures.length) &&
+          {(!!item?.enclosures && !!item.enclosures.length) &&
             item.enclosures.map(enclosure => {
               return (<AudioPlayer key={enclosure.url} uri={enclosure.url} />);
             })
           }
         </>
       }
-      {(item?.authors && item.authors.length !== 0) &&
+      {!!(item?.authors && item.authors.length !== 0) &&
         <Text style={{ color: colors.text }}>By {item.authors.map(a => a.name).join(',')}</Text>
       }
       {item?.published &&
@@ -72,7 +80,7 @@ const Card: FC<Props> = ({ item: it, itemId, width }) => {
     </>
   );
 
-  if (itemId) {
+  if (detailedView) {
     return (
       <View
         style={{...styles.card, backgroundColor: colors.card }}
@@ -125,15 +133,16 @@ const styles = StyleSheet.create({
   badges: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    flexShrink: 1
+    margin: 4,
   },
   badge: {
     fontSize: 9,
-    padding: 2,
-    paddingHorizontal: 4,
+    paddingHorizontal: 8,
     margin: 2,
     borderWidth: 1,
     borderRadius: 16,
+    height: 16,
+    paddingTop: 1
   }
 });
 
