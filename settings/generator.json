@@ -7,7 +7,7 @@
       "background": "#00b7ff",
       "card": "#FFFFFF",
       "text": "rgb(28, 28, 30)",
-      "border": "rgb(255, 59, 48)",
+      "border": "rgb(28, 28, 30)",
       "notification": "rgb(28, 28, 30)"
     },
     "dark": {},

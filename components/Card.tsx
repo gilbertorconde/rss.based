@@ -49,7 +49,7 @@ const Card: FC<Props> = ({ item, detailedView, width }) => {
       {!!detailedView &&
         <>
           <RenderHtml
-            contentWidth={width}
+            contentWidth={width - 32}
             renderers={renderers}
             WebView={WebView}
             customHTMLElementModels={customHTMLElementModels}
@@ -61,7 +61,14 @@ const Card: FC<Props> = ({ item, detailedView, width }) => {
           />
           {(!!item?.enclosures && !!item.enclosures.length) &&
             item.enclosures.map(enclosure => {
-              return (<AudioPlayer key={enclosure.url} uri={enclosure.url} />);
+              return (
+                <AudioPlayer
+                  width={width - 32}
+                  key={enclosure.url}
+                  uri={enclosure.url}
+                  title={item.title}
+                />
+              );
             })
           }
         </>

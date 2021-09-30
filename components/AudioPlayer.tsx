@@ -1,10 +1,13 @@
+import MultiSlider from '@ptomasroos/react-native-multi-slider';
 import { Audio } from 'expo-av';
 import { Sound } from 'expo-av/build/Audio';
 import { activateKeepAwake, deactivateKeepAwake } from 'expo-keep-awake';
 import useTheme from 'hooks/useTheme';
 import React, { FC, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import MusicControl from 'react-native-music-control';
 import Icon from 'react-native-vector-icons/FontAwesome5';
+import AudioPlayerCustomLabel from './AudioPlayerCustomLabel';
 
 export declare type AVPlaybackStatus = {
   error?: string;
@@ -29,24 +32,23 @@ export declare type AVPlaybackStatus = {
 };
 
 interface Props {
-  uri: string
+  uri: string,
+  width: number,
+  title: string,
 }
 
-const calcProgress = (pos: number | undefined, total: number | undefined) => {
-  return (pos || 0) * 100 / (total || 0)
-}
-
-const AudioPlayer: FC<Props> = ({ uri }) => {
+const AudioPlayer: FC<Props> = ({ uri, title, width }) => {
   const [playing, setPlaying] = useState<boolean>(false);
   const [sound, setSound] = useState<Sound>();
   const [progress, setProgress] = useState<number>(0);
+  const [sliderMax, setSliderMax] = useState<number>(100);
   const { colors } = useTheme();
 
   const handlePlayPauseButton = async () => {
     if (playing) {
       await pauseSound();
     } else {
-      await playSound();
+      await playSound(progress);
     }
   }
 
@@ -55,8 +57,7 @@ const AudioPlayer: FC<Props> = ({ uri }) => {
     const fn = () => {
       ref = setTimeout(async () => {
         const soundPlaying = (await sound?.getStatusAsync()) as AVPlaybackStatus;
-        setProgress((soundPlaying?.positionMillis || 0) * 100 / (soundPlaying?.durationMillis || 0));
-        setProgress(calcProgress(soundPlaying?.positionMillis, soundPlaying?.durationMillis))
+        setProgress(soundPlaying?.positionMillis || 0);
         fn();
       }, 1000);
     }
@@ -66,16 +67,39 @@ const AudioPlayer: FC<Props> = ({ uri }) => {
     return () => clearTimeout(ref);
   }, [playing]);
 
-  async function playSound() {
+  async function playSound(pos: number) {
     let aSound = sound;
     if (!aSound) {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        staysActiveInBackground: true,
+        interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DUCK_OTHERS,
+        playsInSilentModeIOS: true,
+        shouldDuckAndroid: true,
+        interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DUCK_OTHERS,
+        playThroughEarpieceAndroid: false,
+      });
       const { sound: s } = await Audio.Sound.createAsync({ uri: uri });
       aSound = s;
       setSound(s);
     }
-    await aSound!.playAsync();
+    let newPos = pos;
+    const soundPlaying = (await aSound.getStatusAsync()) as AVPlaybackStatus;
+    if (sliderMax === 100 && pos <= 100) {
+      setSliderMax(soundPlaying?.durationMillis || 100);
+      newPos = pos * (soundPlaying?.durationMillis || 0) / 100;
+      setProgress(newPos);
+    } else {
+      setProgress(newPos);
+    }
+    await aSound.playFromPositionAsync(newPos);
     activateKeepAwake();
     setPlaying(true);
+    MusicControl.setNowPlaying({
+      title: title,
+      duration: (soundPlaying?.durationMillis || 0) / 1000,
+      color: colors.primary
+    });
   }
 
   const pauseSound = async () => {
@@ -89,25 +113,31 @@ const AudioPlayer: FC<Props> = ({ uri }) => {
     setSound(undefined);
     setPlaying(false);
     deactivateKeepAwake();
+    MusicControl.stopControl();
     setProgress(0);
   }
 
   const backwardSound = async () => {
     const soundPlaying = (await sound?.getStatusAsync()) as AVPlaybackStatus;
     const newPos = (soundPlaying?.positionMillis || 0) - (1000 * 20);
-    await sound?.playFromPositionAsync(newPos < 0 ? 0 : newPos);
-    setProgress(calcProgress(soundPlaying?.positionMillis, soundPlaying?.durationMillis))
+    await playSound(newPos < 0 ? 0 : newPos);
   }
 
   const forwardSound = async () => {
     const soundPlaying = (await sound?.getStatusAsync()) as AVPlaybackStatus;
     const newPos = (soundPlaying?.positionMillis || 0) + (1000 * 30);
     const finalPos = (soundPlaying?.durationMillis || 0);
-    await sound?.playFromPositionAsync(newPos > finalPos ? finalPos : newPos);
-    setProgress(calcProgress(soundPlaying?.positionMillis, soundPlaying?.durationMillis))
+    await playSound(newPos > finalPos ? finalPos : newPos);
   }
 
+  const handleOnSliderChange = async ([value]: number[]) => {
+    await playSound(value);
+  };
+
   useEffect(() => {
+    MusicControl.enableBackgroundMode(true);
+    MusicControl.handleAudioInterruptions(true);
+    MusicControl.enableControl('nextTrack', false);
     return () => {
       if (sound) {
         sound.unloadAsync();
@@ -125,7 +155,6 @@ const AudioPlayer: FC<Props> = ({ uri }) => {
     paddingLeft: 11,
     width: 68,
     height: 68,
-    elevation: 3,
     size: 38,
     backgroundColor: colors.primary,
     color: colors.title,
@@ -134,32 +163,55 @@ const AudioPlayer: FC<Props> = ({ uri }) => {
   return (
     <View>
       <View style={styles.controls}>
-        <Icon.Button {...buttonStyle} name="backward" onPress={backwardSound} />
-        <View style={styles.separator} />
-        <Icon.Button {...buttonStyle} name={playing ? 'pause' : 'play'} onPress={handlePlayPauseButton} />
-        <View style={styles.separator} />
-        <Icon.Button {...buttonStyle} name="forward" onPress={forwardSound} />
-        <View style={styles.separator} />
-        <Icon.Button {...buttonStyle} name="stop" onPress={stopSound} />
+        <View style={styles.controlButton}>
+          <Icon.Button {...buttonStyle} name="backward" onPress={backwardSound} />
+        </View>
+        <View style={styles.controlButton}>
+          <Icon.Button {...buttonStyle} name={playing ? 'pause' : 'play'} onPress={handlePlayPauseButton} />
+        </View>
+        <View style={styles.controlButton}>
+          <Icon.Button {...buttonStyle} name="forward" onPress={forwardSound} />
+        </View>
+        <View style={styles.controlButton}>
+          <Icon.Button {...buttonStyle} name="stop" onPress={stopSound} />
+        </View>
       </View>
-      <View style={{...styles.progress, backgroundColor: colors.background, width: `${progress}%`}} />
+      <MultiSlider
+        min={0}
+        max={sliderMax}
+        trackStyle={styles.tracker}
+        enableLabel
+        customLabel={props => <AudioPlayerCustomLabel {...props} />}
+        allowOverlap
+        markerStyle={{ backgroundColor: colors.primary, ...styles.marker }}
+        selectedStyle={{ backgroundColor: colors.primary }}
+        values={[progress]}
+        sliderLength={width}
+        onValuesChangeFinish={handleOnSliderChange}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  progress: {
-    marginTop: 10,
-    height: 5
-  },
   controls: {
     flexDirection: 'row',
     justifyContent: 'space-between'
   },
-  separator: {
-    width: 10,
-    height: 10,
+  controlButton: {
+    elevation: 4,
+    borderRadius: 5,
   },
+  tracker: {
+    height: 16,
+    borderRadius: 4,
+  },
+  marker: {
+    width: 20,
+    height: 20,
+    marginTop: 16,
+    elevation: 5,
+  }
 });
 
 export default AudioPlayer;
