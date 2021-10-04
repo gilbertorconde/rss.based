@@ -5,7 +5,6 @@ import { activateKeepAwake, deactivateKeepAwake } from 'expo-keep-awake';
 import useTheme from 'hooks/useTheme';
 import React, { FC, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import MusicControl from 'react-native-music-control';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import AudioPlayerCustomLabel from './AudioPlayerCustomLabel';
 
@@ -95,11 +94,6 @@ const AudioPlayer: FC<Props> = ({ uri, title, width }) => {
     await aSound.playFromPositionAsync(newPos);
     activateKeepAwake();
     setPlaying(true);
-    MusicControl.setNowPlaying({
-      title: title,
-      duration: (soundPlaying?.durationMillis || 0) / 1000,
-      color: colors.primary
-    });
   }
 
   const pauseSound = async () => {
@@ -113,7 +107,6 @@ const AudioPlayer: FC<Props> = ({ uri, title, width }) => {
     setSound(undefined);
     setPlaying(false);
     deactivateKeepAwake();
-    MusicControl.stopControl();
     setProgress(0);
   }
 
@@ -135,9 +128,6 @@ const AudioPlayer: FC<Props> = ({ uri, title, width }) => {
   };
 
   useEffect(() => {
-    MusicControl.enableBackgroundMode(true);
-    MusicControl.handleAudioInterruptions(true);
-    MusicControl.enableControl('nextTrack', false);
     return () => {
       if (sound) {
         sound.unloadAsync();

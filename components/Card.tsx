@@ -61,14 +61,26 @@ const Card: FC<Props> = ({ item, detailedView, width }) => {
           />
           {(!!item?.enclosures && !!item.enclosures.length) &&
             item.enclosures.map(enclosure => {
-              return (
-                <AudioPlayer
-                  width={width - 32}
-                  key={enclosure.url}
-                  uri={enclosure.url}
-                  title={item.title}
-                />
-              );
+              if (enclosure.mimeType.startsWith('audio')) {
+                return (
+                  <AudioPlayer
+                    width={width - 32}
+                    key={enclosure.url}
+                    uri={enclosure.url}
+                    title={item.title}
+                  />
+                );
+              } else if (enclosure.mimeType.startsWith('image')) {
+                return (
+                  <AutoHeightImage
+                    width={width - 32 || 100}
+                    key={enclosure.url}
+                    source={{ uri: enclosure.url }}
+                    style={styles.image}
+                  />
+                );
+              }
+              return null;
             })
           }
         </>

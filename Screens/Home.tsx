@@ -11,6 +11,7 @@ import {
   ScrollView, StyleSheet, Text, View
 } from 'react-native';
 import * as rssParser from 'react-native-rss-parser';
+import Icon from 'react-native-vector-icons/FontAwesome5';
 import * as settings from 'settings/generator.json';
 import Store from 'settings/store';
 
@@ -27,13 +28,14 @@ const Home: FC<FeedProps> = () => {
   const { colors, statusbarColors } = useTheme();
   const [loading, setLoading] = useState<boolean>(false);
   const [update, setUpdate] = useState<number>(0);
+  const [rssLink, setRssLink] = useState<string>(settings.rss_url);
   const rssContent = Store.useState(({ feed }) => feed)
 
   useEffect(() => {
     let cancel = false;
     const fetchRssContent = async () => {
       setLoading(true);
-      const rss = await rssParser.parse(await (await fetch(settings.rss_url)).text())
+      const rss = await rssParser.parse(await (await fetch(rssLink)).text())
       if (!cancel) {
         Store.update(s => { s.feed = rss; })
         setLoading(false);
@@ -54,6 +56,17 @@ const Home: FC<FeedProps> = () => {
     outputRange: [H_MAX_HEIGHT, H_MIN_HEIGHT],
     extrapolate: "clamp"
   });
+
+  const next = rssContent?.links.find(link => link.rel === 'next');
+  const previous = rssContent?.links.find(link => link.rel === 'previous');
+  const first = rssContent?.links.find(link => link.rel === 'first');
+  const last = rssContent?.links.find(link => link.rel === 'last');
+
+  const handlePaginationPressed = (url: string | undefined) => {
+    if (url) {
+      setRssLink(url);
+    }
+  }
 
   return (
     <SafeAreaView
@@ -87,6 +100,19 @@ const Home: FC<FeedProps> = () => {
         <View style={{ paddingTop: H_MAX_HEIGHT }} />
         {rssContent?.items.map(item => <Card width={containerWidth} key={item.id} item={item} />)}
       </ScrollView>
+      {(!!previous || !!next) &&
+        <View style={styles.pagination}>
+          {!!first &&
+            <Icon.Button disabled={rssLink === settings.rss_url} name='angle-double-left' onPress={() => handlePaginationPressed(first.url)} />
+          }
+          <Icon.Button disabled={!previous || rssLink === settings.rss_url} name='angle-left' onPress={() => handlePaginationPressed(previous?.url)} />
+          <Icon.Button disabled={!next || rssLink !== last?.url} name='angle-right' onPress={() => handlePaginationPressed(next?.url)} />
+          {(!!last) &&
+            <Icon.Button disabled={rssLink === last.url} name='angle-double-right' onPress={() => handlePaginationPressed(last.url)} />
+          }
+        </View>
+      }
+
       <Animated.View
         style={{
           ...styles.animated,
@@ -134,6 +160,9 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     flex: 1,
+  },
+  pagination: {
+
   },
   animated: {
     position: "absolute",
